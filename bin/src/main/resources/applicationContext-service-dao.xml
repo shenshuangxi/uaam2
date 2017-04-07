@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:ldap="http://www.springframework.org/schema/ldap"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+              http://www.springframework.org/schema/beans/spring-beans.xsd
+              http://www.springframework.org/schema/context
+              http://www.springframework.org/schema/context/spring-context.xsd
+              http://www.springframework.org/schema/ldap 
+              http://www.springframework.org/schema/ldap/spring-ldap.xsd
+              http://www.springframework.org/schema/mvc
+              http://www.springframework.org/schema/mvc/spring-mvc.xsd">
+
+
+
+	<bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource">
+		<property name="driverClassName" value="${db.driver}" />  
+        <property name="url" value="${db.url}" />  
+        <property name="username" value="${db.username}" />  
+        <property name="password" value="${db.password}" />  
+        <!-- 初始化连接大小 -->  
+        <property name="initialSize" value="${db.initialSize}"></property>  
+        <!-- 连接池最大数量 -->  
+        <property name="maxActive" value="${db.maxActive}"></property>  
+        <!-- 连接池最大空闲 -->  
+        <property name="maxIdle" value="${db.maxIdle}"></property>  
+        <!-- 连接池最小空闲 -->  
+        <property name="minIdle" value="${db.minIdle}"></property>  
+        <!-- 获取连接最大等待时间 -->  
+        <property name="maxWait" value="${db.maxWait}"></property>  
+	</bean>
+	
+	<ldap:context-source id="poolContextSource" username="${ldap.username}" password="${ldap.password}" url="${ldap.url}" >
+		<ldap:pooling test-while-idle="true" />
+	</ldap:context-source>
+	<ldap:ldap-template id="poolLdapTemplate" context-source-ref="poolContextSource" />
+	
+	<ldap:context-source id="signalContextSource" username="${ldap.username}" password="${ldap.password}" url="${ldap.url}" >
+	</ldap:context-source>
+	<ldap:ldap-template id="signalLdapTemplate" context-source-ref="signalContextSource" />
+		
+	<ldap:transaction-manager data-source-ref="dataSource" context-source-ref="poolContextSource">
+		<ldap:default-renaming-strategy />
+	</ldap:transaction-manager>
+	
+	<!-- spring和MyBatis完美整合，不需要mybatis的配置映射文件 -->  
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">  
+        <property name="dataSource" ref="dataSource" />  
+        <!-- 自动扫描mapping.xml文件 
+        <property name="mapperLocations" value="classpath:com/gionee/uaam2/dao/*.xml"></property>  
+        --> 
+    </bean>
+    
+    <!-- DAO接口所在包名，Spring会自动查找其下的类 -->  
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">  
+        <property name="basePackage" value="com.gionee.uaam2.dao" />  
+        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"></property>  
+    </bean>
+	
+	
+	<bean id="ldapDao" class="com.gionee.uaam2.dao.impl.LdapDaoImpl">
+		<property name="poolLdapTemplate" ref="poolLdapTemplate"></property>
+		<property name="signalLdapTemplate" ref="signalLdapTemplate"></property>
+	</bean>
+
+	<bean id="daoManager" class="com.gionee.uaam2.dao.DaoManager">
+		<property name="ldapDao" ref="ldapDao"></property>
+	</bean>
+	
+	<bean id="organzationService" class="com.gionee.uaam2.service.impl.OrganzationServiceImpl">
+		<property name="daoManager" ref="daoManager"></property>
+	</bean>
+	<bean id="userService" class="com.gionee.uaam2.service.impl.UserServiceImpl">
+		<property name="daoManager" ref="daoManager"></property>
+	</bean>
+	<bean id="groupService" class="com.gionee.uaam2.service.impl.GroupServiceImpl">
+		<property name="daoManager" ref="daoManager"></property>
+	</bean>
+	<bean id="serviceManager" class="com.gionee.uaam2.service.ServiceManager">
+		<property name="organzationService" ref="organzationService"></property>
+		<property name="userService" ref="userService"></property>
+		<property name="groupService" ref="groupService"></property>
+	</bean>
+
+
+</beans>

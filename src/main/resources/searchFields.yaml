@@ -1,0 +1,8 @@
+- !!com.gionee.uaam2.util.SearchFields
+  category: 用户
+  categoryValue: user
+  fields: {姓名: username, 手机号: mobile, 账号: account, 邮件: mail}
+- !!com.gionee.uaam2.util.SearchFields
+  category: 分组
+  categoryValue: group
+  fields: {描述: description, 组名: groupName}
